@@ -16,3 +16,12 @@ timeout:
   read: 30
   write: 30
   idle: 30
+logger:
+  format: "[${time}] ${ip} ${protocol} ${status} - ${latency} ${method} ${url}"
+  filename: web
+  time:
+    # golang time format
+    format: 15:04:05
+    zone: Local
+    # millisecond
+    interval: 500

@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/egovorukhin/egoappinfo v0.0.6
 	github.com/egovorukhin/egoconf v0.3.4
+	github.com/egovorukhin/egolog v0.2.6
 	github.com/gofiber/fiber/v2 v2.49.1
 )
 
