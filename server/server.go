@@ -50,6 +50,9 @@ func Init(s *Config, appName string) error {
 		}))
 	}
 	app.Use(func(c *fiber.Ctx) error {
+		/*if c.Method() == "GET" {
+			return c.Render("index", nil)
+		}*/
 		url := string(c.Request().RequestURI())
 		location, err := s.Router.GetLocation(url)
 		if err != nil {
