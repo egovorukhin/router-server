@@ -4,10 +4,8 @@ import (
 	"fmt"
 	"github.com/egovorukhin/egolog"
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/proxy"
-	"net/http"
 	"time"
 )
 
@@ -38,17 +36,10 @@ func Init(s *Config, appName string) error {
 	if len(s.Router.Index) == 0 {
 		s.Router.Index = "index.html"
 	}
-	/*app.Static("/", s.Root, fiber.Static{
+	app.Static("/", s.Root, fiber.Static{
 		Index: s.Router.Index,
-	})*/
-	//app.Static("*", s.Root+"/"+s.Router.Index)
-	app.Use(filesystem.New(filesystem.Config{
-		Root:         http.Dir(s.Root),
-		PathPrefix:   "/",
-		Browse:       false,
-		Index:        s.Router.Index,
-		NotFoundFile: s.Router.Index,
-	}))
+	})
+	app.Static("*", s.Root+"/"+s.Router.Index)
 	if s.Logger != nil {
 		app.Use(logger.New(logger.Config{
 			Format:       s.Logger.Format,
@@ -58,17 +49,25 @@ func Init(s *Config, appName string) error {
 			Output:       s.Logger,
 		}))
 	}
+	/*app.Use(filesystem.New(filesystem.Config{
+		Root:         http.Dir(s.Root),
+		PathPrefix:   "/",
+		Browse:       false,
+		Index:        s.Router.Index,
+		NotFoundFile: s.Router.Index,
+	}))*/
 	app.Use(func(c *fiber.Ctx) error {
-		/*if c.Method() == "GET" {
-			return c.Render("index", nil)
-		}*/
 		url := string(c.Request().RequestURI())
 		location, err := s.Router.GetLocation(url)
 		if err != nil {
 			return c.Status(404).SendString(fmt.Sprintf("%s маршрут не найден. проверьте настройки", url))
 		}
 		egolog.Info(location)
-		return proxy.Do(c, location)
+		if err = proxy.Do(c, location); err != nil {
+			return err
+		}
+		return nil
+		//if c.Response().StatusCode() == fiber.StatusNotFound
 	})
 
 	addr := fmt.Sprintf(":%d", s.Port)
