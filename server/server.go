@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/proxy"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -58,10 +59,23 @@ func Init(s *Config, appName string) error {
 			return c.Status(404).SendString(fmt.Sprintf("%s маршрут не найден. проверьте настройки", url))
 		}
 		egolog.Info(c.Response().StatusCode())
-		if err = proxy.Do(c, location); err != nil {
-			return c.Next()
+		egolog.Info(c.Request().Header.String())
+		req := c.Request()
+		var isSPA bool
+		req.Header.VisitAll(func(key, value []byte) {
+			if strings.Contains(string(key), fiber.HeaderAccept) && strings.Contains(string(value), fiber.MIMETextHTML) {
+				isSPA = true
+			}
+		})
+		if isSPA {
+			c.Next()
 		}
-		if c.Response().StatusCode() == fiber.StatusNotFound {
+		if err = proxy.Do(c, location); err != nil {
+			return err
+		}
+
+		resp := c.Response()
+		if resp.StatusCode() == fiber.StatusNotFound {
 			return c.Next()
 		}
 		return nil
