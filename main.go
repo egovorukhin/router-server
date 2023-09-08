@@ -38,7 +38,7 @@ func waitSignal(errChan chan error) {
 }
 
 func init() {
-	info.SetName("ALAcall Router Server")
+	info.SetName("Router Server")
 	info.SetVersion(0, 0, 2)
 }
 
