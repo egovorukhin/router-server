@@ -1,14 +1,13 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
-	"github.com/egovorukhin/egolog"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/proxy"
 	"net/http"
-	"strings"
 	"time"
 )
 
@@ -27,6 +26,11 @@ type Timeout struct {
 	Write int `yaml:"write"`
 	Idle  int `yaml:"idle"`
 }
+
+var (
+	byteHeaderAccept = []byte(fiber.HeaderAccept)
+	byteMIMETextHTML = []byte(fiber.MIMETextHTML)
+)
 
 func Init(s *Config, appName string) error {
 
@@ -58,18 +62,18 @@ func Init(s *Config, appName string) error {
 		if err != nil {
 			return c.Status(404).SendString(fmt.Sprintf("%s маршрут не найден. проверьте настройки", url))
 		}
-		egolog.Info(c.Response().StatusCode())
-		egolog.Info(c.Request().Header.String())
 		req := c.Request()
 		var isSPA bool
 		req.Header.VisitAll(func(key, value []byte) {
-			if strings.Contains(string(key), fiber.HeaderAccept) && strings.Contains(string(value), fiber.MIMETextHTML) {
-				isSPA = true
+			if bytes.Equal(key, byteHeaderAccept) {
+				isSPA = HasHeader(value, byteMIMETextHTML)
+				return
 			}
 		})
 		if isSPA {
-			c.Next()
+			return c.Next()
 		}
+		//proxy.Balancer()
 		if err = proxy.Do(c, location); err != nil {
 			return err
 		}
@@ -95,4 +99,19 @@ func Init(s *Config, appName string) error {
 	}
 
 	return app.Listen(addr)
+}
+
+func HasHeader(header, value []byte) bool {
+	n := bytes.Index(header, value)
+	if n < 0 {
+		return false
+	}
+	b := header[n+len(value):]
+	if len(b) > 0 && b[0] != ',' {
+		return false
+	}
+	if n == 0 {
+		return true
+	}
+	return header[n-1] == ' '
 }

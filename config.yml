@@ -4,8 +4,9 @@ router:
   index: index.html
   location:
     "/":
-      url: 'http://localhost:8050'
+      url: 'http://localhost:8081'
       remove: false
+
 port: 8080
 secure: false
 certificate:
