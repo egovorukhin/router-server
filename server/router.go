@@ -6,9 +6,10 @@ import (
 )
 
 type Router struct {
-	Pattern  string   `yaml:"pattern"`
-	Index    string   `yaml:"index"`
-	Location Location `yaml:"location"`
+	Pattern            string   `yaml:"pattern"`
+	Index              string   `yaml:"index"`
+	IpClientHeaderName string   `yaml:"ipClientHeaderName"`
+	Location           Location `yaml:"location"`
 }
 
 type Location map[string]struct {

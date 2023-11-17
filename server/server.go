@@ -43,6 +43,9 @@ func Init(s *Config, appName string) error {
 	if len(s.Router.Index) == 0 {
 		s.Router.Index = "index.html"
 	}
+	if len(s.Router.IpClientHeaderName) == 0 {
+		s.Router.IpClientHeaderName = "X-Client-IP"
+	}
 	app.Static("/", s.Root, fiber.Static{
 		Index: s.Router.Index,
 	})
@@ -73,7 +76,7 @@ func Init(s *Config, appName string) error {
 		if isSPA {
 			return c.Next()
 		}
-		//proxy.Balancer()
+		c.Request().Header.Add(s.Router.IpClientHeaderName, c.IP())
 		if err = proxy.Do(c, location); err != nil {
 			return err
 		}

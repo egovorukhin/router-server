@@ -2,11 +2,13 @@ root: ./dist
 router:
   pattern: ^\/
   index: index.html
+  ipClientHeaderName: 'X-Client-IP'
   location:
     "/":
       url: 'http://localhost:8081'
       remove: false
-
+variables:
+  api_url: ''
 port: 8080
 secure: false
 certificate:
