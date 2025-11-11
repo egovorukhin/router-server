@@ -1,4 +1,6 @@
+# Статичные данные
 root: ./dist
+# Маршрутизация запросов
 router:
   pattern: ^\/
   index: index.html
@@ -10,7 +12,9 @@ router:
 variables:
   api_url: ''
 port: 8080
+# Запуск SSL
 secure: false
+# Путь до сертификатов, не работает при secure = false
 certificate:
   cert:
   key:
@@ -19,6 +23,23 @@ timeout:
   read: 30
   write: 30
   idle: 30
+# Настройка проверки подключений
+heartbeat:
+  path: '/heartbeat'
+  statusCode: 200
+# Прокси клиент
+client:
+#  maxConnsPerHost: 0
+#  maxIdemponentCallAttempts: 0
+#  maxResponseBodySize: 0
+#  readBufferSize: 0
+#  writeBufferSize: 0
+#  readTimeout: 0
+#  writeTimeout: 0
+#  maxConnWaitTimeout: 0
+#  streamResponseBody: 0
+  tls:
+    insecureSkipVerify: true
 logger:
   format: "[${time}] ${ip} ${protocol} ${status} - ${latency} ${method} ${url}"
   filename: web

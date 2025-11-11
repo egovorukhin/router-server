@@ -2,13 +2,16 @@ package server
 
 import (
 	"bytes"
+	"crypto/tls"
 	"fmt"
+	"net/http"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/proxy"
-	"net/http"
-	"time"
+	"github.com/valyala/fasthttp"
 )
 
 type Config struct {
@@ -19,6 +22,15 @@ type Config struct {
 	Certificate *Certificate `yaml:"certificate"`
 	Logger      *Logger      `yaml:"logger,omitempty"`
 	Timeout     Timeout      `yaml:"timeout"`
+	Heartbeat   Heartbeat    `yaml:"heartbeat"`
+	Client      Client       `yaml:"client"`
+}
+
+type Certificate struct {
+	Name       string `yaml:"name"`
+	Cert       string `yaml:"cert"`
+	Key        string `yaml:"key"`
+	ClientCert string `yaml:"clientCert"`
 }
 
 type Timeout struct {
@@ -27,12 +39,51 @@ type Timeout struct {
 	Idle  int `yaml:"idle"`
 }
 
+type Heartbeat struct {
+	Path       string `yaml:"path"`
+	StatusCode int    `yaml:"statusCode"`
+}
+
+type Client struct {
+	MaxConnsPerHost           int  `yaml:"maxConnsPerHost"`
+	MaxIdemponentCallAttempts int  `yaml:"maxIdemponentCallAttempts"`
+	MaxResponseBodySize       int  `yaml:"maxResponseBodySize"`
+	ReadBufferSize            int  `yaml:"readBufferSize"`
+	WriteBufferSize           int  `yaml:"writeBufferSize"`
+	ReadTimeout               int  `yaml:"readTimeout"`
+	WriteTimeout              int  `yaml:"writeTimeout"`
+	MaxConnWaitTimeout        int  `yaml:"maxConnWaitTimeout"`
+	StreamResponseBody        bool `yaml:"streamResponseBody"`
+	TlsConfig                 *struct {
+		InsecureSkipVerify bool `yaml:"insecureSkipVerify"`
+	} `yaml:"tls"`
+}
+
 var (
 	byteHeaderAccept = []byte(fiber.HeaderAccept)
 	byteMIMETextHTML = []byte(fiber.MIMETextHTML)
 )
 
 func Init(s *Config, appName string) error {
+
+	cli := &fasthttp.Client{
+		NoDefaultUserAgentHeader:  true,
+		DisablePathNormalizing:    true,
+		MaxConnsPerHost:           s.Client.MaxConnsPerHost,
+		MaxIdemponentCallAttempts: s.Client.MaxIdemponentCallAttempts,
+		ReadBufferSize:            s.Client.ReadBufferSize,
+		WriteBufferSize:           s.Client.WriteBufferSize,
+		ReadTimeout:               time.Duration(s.Client.ReadTimeout) * time.Second,
+		WriteTimeout:              time.Duration(s.Client.WriteTimeout) * time.Second,
+		MaxResponseBodySize:       s.Client.MaxResponseBodySize,
+		MaxConnWaitTimeout:        time.Duration(s.Client.MaxConnWaitTimeout) * time.Second,
+		StreamResponseBody:        s.Client.StreamResponseBody,
+	}
+	if s.Client.TlsConfig != nil {
+		cli.TLSConfig = &tls.Config{
+			InsecureSkipVerify: s.Client.TlsConfig.InsecureSkipVerify,
+		}
+	}
 
 	app := fiber.New(fiber.Config{
 		AppName:      appName,
@@ -49,7 +100,6 @@ func Init(s *Config, appName string) error {
 	app.Static("/", s.Root, fiber.Static{
 		Index: s.Router.Index,
 	})
-	//app.Static("*", s.Root+"/"+s.Router.Index)
 	if s.Logger != nil {
 		app.Use(logger.New(logger.Config{
 			Format:       s.Logger.Format,
@@ -59,6 +109,15 @@ func Init(s *Config, appName string) error {
 			Output:       s.Logger,
 		}))
 	}
+	if len(s.Heartbeat.Path) == 0 {
+		s.Heartbeat.Path = "/heartbeat"
+	}
+	if s.Heartbeat.StatusCode == 0 {
+		s.Heartbeat.StatusCode = 200
+	}
+	app.Get(s.Heartbeat.Path, func(ctx *fiber.Ctx) error {
+		return ctx.Status(s.Heartbeat.StatusCode).SendString("OK")
+	})
 	app.Use(func(c *fiber.Ctx) error {
 		url := string(c.Request().RequestURI())
 		location, err := s.Router.GetLocation(url)
@@ -66,18 +125,18 @@ func Init(s *Config, appName string) error {
 			return c.Status(404).SendString(fmt.Sprintf("%s маршрут не найден. проверьте настройки", url))
 		}
 		req := c.Request()
-		var isSPA bool
+		var isTextHTML bool
 		req.Header.VisitAll(func(key, value []byte) {
 			if bytes.Equal(key, byteHeaderAccept) {
-				isSPA = HasHeader(value, byteMIMETextHTML)
+				isTextHTML = HasHeader(value, byteMIMETextHTML)
 				return
 			}
 		})
-		if isSPA {
+		if isTextHTML {
 			return c.Next()
 		}
 		c.Request().Header.Add(s.Router.IpClientHeaderName, c.IP())
-		if err = proxy.Do(c, location); err != nil {
+		if err = proxy.Do(c, location, cli); err != nil {
 			return err
 		}
 

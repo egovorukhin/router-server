@@ -2,15 +2,16 @@ package main
 
 import (
 	"fmt"
-	info "github.com/egovorukhin/egoappinfo"
-	"github.com/egovorukhin/egoconf"
-	"github.com/egovorukhin/egolog"
 	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"ucc-front-server/logger"
 	"ucc-front-server/server"
+
+	info "github.com/egovorukhin/egoappinfo"
+	"github.com/egovorukhin/egoconf"
+	"github.com/egovorukhin/egolog"
 )
 
 type Config struct {
@@ -19,7 +20,7 @@ type Config struct {
 
 func init() {
 	info.SetName("Router Server")
-	info.SetVersion(0, 0, 3)
+	info.SetVersion(0, 0, 5)
 }
 
 func main() {
@@ -31,9 +32,7 @@ func main() {
 	app := fmt.Sprintf("%s v%s", info.GetApplicationName(), info.GetVersion())
 
 	egolog.Info("start %s", app)
-	defer func() {
-		egolog.Info("stop %s", app)
-	}()
+	defer egolog.Info("stop")
 
 	// Канал для получения ошибки, если таковая будет
 	errChan := make(chan error, 2)
