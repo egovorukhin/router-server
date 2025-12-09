@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	info "github.com/egovorukhin/egoappinfo"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/filesystem"
 	"github.com/gofiber/fiber/v2/middleware/logger"
@@ -60,8 +61,9 @@ type Client struct {
 }
 
 var (
-	byteHeaderAccept = []byte(fiber.HeaderAccept)
-	byteMIMETextHTML = []byte(fiber.MIMETextHTML)
+	byteHeaderAccept   = []byte(fiber.HeaderAccept)
+	byteMIMETextHTML   = []byte(fiber.MIMETextHTML)
+	ipClientHeaderName = "x-client-ip"
 )
 
 func Init(s *Config, appName string) error {
@@ -95,7 +97,7 @@ func Init(s *Config, appName string) error {
 		s.Router.Index = "index.html"
 	}
 	if len(s.Router.IpClientHeaderName) == 0 {
-		s.Router.IpClientHeaderName = "X-Client-IP"
+		s.Router.IpClientHeaderName = ipClientHeaderName
 	}
 	app.Static("/", s.Root, fiber.Static{
 		Index: s.Router.Index,
@@ -125,17 +127,21 @@ func Init(s *Config, appName string) error {
 			return c.Status(404).SendString(fmt.Sprintf("%s маршрут не найден. проверьте настройки", url))
 		}
 		req := c.Request()
-		var isTextHTML bool
-		req.Header.VisitAll(func(key, value []byte) {
+		var isTextHTML, isXClientIP bool
+		for key, value := range req.Header.All() {
 			if bytes.Equal(key, byteHeaderAccept) {
 				isTextHTML = HasHeader(value, byteMIMETextHTML)
-				return
+				continue
 			}
-		})
+			isXClientIP = bytes.Equal(bytes.ToLower(key), []byte(ipClientHeaderName))
+		}
 		if isTextHTML {
 			return c.Next()
 		}
-		c.Request().Header.Add(s.Router.IpClientHeaderName, c.IP())
+		if !isXClientIP {
+			c.Request().Header.Add(s.Router.IpClientHeaderName, c.IP())
+		}
+		c.Request().Header.Add("Router-Server", "v"+info.GetVersion().String())
 		if err = proxy.Do(c, location, cli); err != nil {
 			return err
 		}
