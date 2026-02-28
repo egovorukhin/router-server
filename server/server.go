@@ -145,11 +145,8 @@ func Init(s *Config, appName string) error {
 		if err = proxy.Do(c, location, cli); err != nil {
 			return err
 		}
-
-		resp := c.Response()
-		if resp.StatusCode() == fiber.StatusNotFound {
-			return c.Next()
-		}
+		//resp := c.Response()
+		//fmt.Println(resp.StatusCode())
 		return nil
 	})
 	app.Use(filesystem.New(filesystem.Config{

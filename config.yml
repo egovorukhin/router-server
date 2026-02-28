@@ -7,7 +7,7 @@ router:
   ipClientHeaderName: 'X-Client-IP'
   location:
     "/":
-      url: 'http://localhost:8081'
+      url: 'http://localhost:8595'
       remove: false
 variables:
   api_url: ''
