@@ -20,7 +20,7 @@ type Config struct {
 
 func init() {
 	info.SetName("Router Server")
-	info.SetVersion(0, 0, 7)
+	info.SetVersion(0, 0, 8)
 }
 
 func main() {

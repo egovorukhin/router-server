@@ -23,6 +23,8 @@ type Config struct {
 	Certificate *Certificate `yaml:"certificate"`
 	Logger      *Logger      `yaml:"logger,omitempty"`
 	Timeout     Timeout      `yaml:"timeout"`
+	Buffer      Buffer       `yaml:"buffer"`
+	BodyLimit   int          `yaml:"bodyLimit"`
 	Heartbeat   Heartbeat    `yaml:"heartbeat"`
 	Client      Client       `yaml:"client"`
 }
@@ -38,6 +40,11 @@ type Timeout struct {
 	Read  int `yaml:"read"`
 	Write int `yaml:"write"`
 	Idle  int `yaml:"idle"`
+}
+
+type Buffer struct {
+	Read  int `yaml:"read"`
+	Write int `yaml:"write"`
 }
 
 type Heartbeat struct {
@@ -88,10 +95,13 @@ func Init(s *Config, appName string) error {
 	}
 
 	app := fiber.New(fiber.Config{
-		AppName:      appName,
-		ReadTimeout:  time.Duration(s.Timeout.Read) * time.Second,
-		WriteTimeout: time.Duration(s.Timeout.Write) * time.Second,
-		IdleTimeout:  time.Duration(s.Timeout.Idle) * time.Second,
+		AppName:         appName,
+		ReadTimeout:     time.Duration(s.Timeout.Read) * time.Second,
+		WriteTimeout:    time.Duration(s.Timeout.Write) * time.Second,
+		IdleTimeout:     time.Duration(s.Timeout.Idle) * time.Second,
+		ReadBufferSize:  s.Buffer.Read,
+		WriteBufferSize: s.Buffer.Write,
+		BodyLimit:       s.BodyLimit,
 	})
 	if len(s.Router.Index) == 0 {
 		s.Router.Index = "index.html"

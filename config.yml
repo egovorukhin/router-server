@@ -23,6 +23,10 @@ timeout:
   read: 30
   write: 30
   idle: 30
+buffer:
+  read: 0
+  write: 0
+bodyLimit: 0
 # Настройка проверки подключений
 heartbeat:
   path: '/heartbeat'
