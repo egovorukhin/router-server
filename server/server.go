@@ -63,6 +63,7 @@ type Client struct {
 	WriteTimeout              int  `yaml:"writeTimeout"`
 	MaxConnWaitTimeout        int  `yaml:"maxConnWaitTimeout"`
 	StreamResponseBody        bool `yaml:"streamResponseBody"`
+	AllowPrivateIPs           bool `yaml:"allowPrivateIPs"`
 	TlsConfig                 *struct {
 		InsecureSkipVerify bool `yaml:"insecureSkipVerify"`
 	} `yaml:"tls"`
@@ -94,6 +95,12 @@ func Init(s *Config, appName string) error {
 			InsecureSkipVerify: s.Client.TlsConfig.InsecureSkipVerify,
 		}
 	}
+
+	// В v3 прокси по умолчанию блокирует loopback/приватные адреса (защита от SSRF).
+	// Бэкенды роутера задаются администратором в конфиге, поэтому это можно разрешить.
+	policy := proxy.DefaultSecurityPolicy()
+	policy.AllowPrivateIPs = s.Client.AllowPrivateIPs
+	proxy.WithSecurityPolicy(policy)
 
 	app := fiber.New(fiber.Config{
 		AppName:         appName,

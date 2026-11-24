@@ -1,14 +1,14 @@
 # Статичные данные
-root: ./www
+root: ./dist
 # Маршрутизация запросов
 router:
   pattern: ^\/
   index: index.html
   ipClientHeaderName: 'X-Client-IP'
-#  location:
-#    "/":
-#      url: 'https://enps-app1-lt3.hq.bc:8081'
-#      remove: false
+  location:
+    "/":
+      url: 'http://arn-app1-lt3.hq.bc:8283'
+      remove: false
 variables:
   api_url: ''
 port: 8080
@@ -33,6 +33,8 @@ heartbeat:
   statusCode: 200
 # Прокси клиент
 client:
+  # разрешить проксирование на локальные/приватные адреса (127.0.0.1, 10.x, 192.168.x ...)
+  allowPrivateIPs: true
 #  maxConnsPerHost: 0
 #  maxIdemponentCallAttempts: 0
 #  maxResponseBodySize: 0

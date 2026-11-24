@@ -80,10 +80,10 @@ func (l *Logger) trim(s []byte) []byte {
 	}, s)
 }
 
-func (l *Logger) Info(format string, v ...interface{}) {
+func (l *Logger) Info(format string, v ...any) {
 	egolog.Infofn(l.Filename, format, v...)
 }
 
-func (l *Logger) Error(format string, v ...interface{}) {
+func (l *Logger) Error(format string, v ...any) {
 	egolog.Errorfn(l.Filename, format, v...)
 }
