@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Router Server</title>
+  <meta name="description" content="Router Server — лёгкий сервер для раздачи статики и проксирования запросов на бэкенд.">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <a class="logo" href="#top">Router Server</a>
+    <nav>
+      <a href="#features">Возможности</a>
+      <a href="#how">Как работает</a>
+      <a href="#config">Конфигурация</a>
+    </nav>
+    <button id="theme" aria-label="Сменить тему">◐</button>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <h1>Статика и прокси.<br>В одном бинарнике.</h1>
+      <p>Router Server раздаёт ваш фронтенд и направляет API-запросы на нужные сервисы по простым правилам из одного YAML-файла.</p>
+      <a class="btn" href="#config">Начать</a>
+    </section>
+
+    <section id="features">
+      <h2>Возможности</h2>
+      <div class="grid">
+        <article><h3>Раздача статики</h3><p>Отдаёт каталог с сайтом, поддерживает SPA: неизвестные пути ведут на index.html.</p></article>
+        <article><h3>Маршрутизация</h3><p>Правила по регулярному выражению решают, на какой бэкенд уйдёт запрос.</p></article>
+        <article><h3>Обратный прокси</h3><p>Проксирует запросы и добавляет заголовки с IP клиента и версией сервера.</p></article>
+        <article><h3>HTTPS</h3><p>Включается одной настройкой и парой файлов сертификата.</p></article>
+        <article><h3>Heartbeat</h3><p>Эндпоинт для проверки живости сервиса балансировщиком.</p></article>
+        <article><h3>Логи</h3><p>Настраиваемый формат; пароли в запросах авторизации маскируются.</p></article>
+      </div>
+    </section>
+
+    <section id="how">
+      <h2>Как работает</h2>
+      <ol class="steps">
+        <li><b>Файл?</b> Если путь найден в каталоге статики — он отдаётся сразу.</li>
+        <li><b>Маршрут?</b> Иначе сервер ищет подходящее правило и проксирует запрос.</li>
+        <li><b>Страница.</b> Запросы браузера за HTML получают index.html приложения.</li>
+      </ol>
+    </section>
+
+    <section id="config">
+      <h2>Конфигурация</h2>
+      <pre><code>root: ./dist
+port: 8080
+router:
+  pattern: ^\/api
+  index: index.html
+  location:
+    "/api":
+      url: 'http://backend:8081'
+      remove: false
+heartbeat:
+  path: /heartbeat
+  statusCode: 200</code></pre>
+    </section>
+  </main>
+
+  <footer>© <span id="year"></span> Router Server</footer>
+  <script src="script.js"></script>
+</body>
+</html>
