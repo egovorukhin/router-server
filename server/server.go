@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"net/http"
+	"path/filepath"
 	"time"
 
 	info "github.com/egovorukhin/egoappinfo"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/filesystem"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/proxy"
+	"github.com/egovorukhin/egolog"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/logger"
+	"github.com/gofiber/fiber/v3/middleware/proxy"
+	"github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/valyala/fasthttp"
 )
 
@@ -109,16 +110,14 @@ func Init(s *Config, appName string) error {
 	if len(s.Router.IpClientHeaderName) == 0 {
 		s.Router.IpClientHeaderName = ipClientHeaderName
 	}
-	app.Static("/", s.Root, fiber.Static{
-		Index: s.Router.Index,
-	})
+	app.Get("/*", static.New(s.Root, static.Config{IndexNames: []string{s.Router.Index}}))
 	if s.Logger != nil {
 		app.Use(logger.New(logger.Config{
 			Format:       s.Logger.Format,
 			TimeFormat:   s.Logger.Time.Format,
 			TimeZone:     s.Logger.Time.Zone,
 			TimeInterval: time.Duration(s.Logger.Time.Interval) * time.Millisecond,
-			Output:       s.Logger,
+			Stream:       s.Logger,
 		}))
 	}
 	if len(s.Heartbeat.Path) == 0 {
@@ -127,10 +126,10 @@ func Init(s *Config, appName string) error {
 	if s.Heartbeat.StatusCode == 0 {
 		s.Heartbeat.StatusCode = 200
 	}
-	app.Get(s.Heartbeat.Path, func(ctx *fiber.Ctx) error {
+	app.Get(s.Heartbeat.Path, func(ctx fiber.Ctx) error {
 		return ctx.Status(s.Heartbeat.StatusCode).SendString("OK")
 	})
-	app.Use(func(c *fiber.Ctx) error {
+	app.Use(func(c fiber.Ctx) error {
 		url := string(c.Request().RequestURI())
 		location, err := s.Router.GetLocation(url)
 		if err != nil {
@@ -146,6 +145,8 @@ func Init(s *Config, appName string) error {
 			isXClientIP = bytes.Equal(bytes.ToLower(key), []byte(ipClientHeaderName))
 		}
 		if isTextHTML {
+			egolog.Info("isTextHTML:", isTextHTML)
+			egolog.Info("%v", c.String())
 			return c.Next()
 		}
 		if !isXClientIP {
@@ -155,22 +156,19 @@ func Init(s *Config, appName string) error {
 		if err = proxy.Do(c, location, cli); err != nil {
 			return err
 		}
-		//resp := c.Response()
-		//fmt.Println(resp.StatusCode())
+		resp := c.Response()
+		fmt.Println(resp.StatusCode())
 		return nil
 	})
-	app.Use(filesystem.New(filesystem.Config{
-		Root:         http.Dir(s.Root),
-		PathPrefix:   "/",
-		Browse:       false,
-		Index:        s.Router.Index,
-		NotFoundFile: s.Router.Index,
-	}))
+	// SPA fallback: отдаём index для всех неразрешённых маршрутов
+	app.Use(func(c fiber.Ctx) error {
+		return c.SendFile(filepath.Join(s.Root, s.Router.Index))
+	})
 
 	addr := fmt.Sprintf(":%d", s.Port)
 
 	if s.Secure && s.Certificate != nil {
-		return app.ListenTLS(addr, s.Certificate.Cert, s.Certificate.Key)
+		return app.Listen(addr, fiber.ListenConfig{CertFile: s.Certificate.Cert, CertKeyFile: s.Certificate.Key})
 	}
 
 	return app.Listen(addr)

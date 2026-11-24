@@ -1,14 +1,14 @@
 # Статичные данные
-root: ./dist
+root: ./www
 # Маршрутизация запросов
 router:
   pattern: ^\/
   index: index.html
   ipClientHeaderName: 'X-Client-IP'
-  location:
-    "/":
-      url: 'http://localhost:8595'
-      remove: false
+#  location:
+#    "/":
+#      url: 'https://enps-app1-lt3.hq.bc:8081'
+#      remove: false
 variables:
   api_url: ''
 port: 8080
